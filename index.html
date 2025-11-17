@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SubPlanner</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1d4ed8">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body { font-family: Arial, sans-serif; background:#f0f4f8; margin:0; padding:20px; }
+.container { max-width:800px; margin:auto; }
+h1 { font-size:2rem; font-weight:bold; text-align:center; margin-bottom:5px; color:#1d4ed8; }
+.notice { background:#fff3cd; padding:12px; border-radius:10px; margin-bottom:20px; text-align:center; font-style:italic; color:#856404; }
+.tabs { display:flex; gap:5px; margin-bottom:10px; flex-wrap:wrap; }
+.tab { padding:6px 12px; cursor:pointer; border-radius:8px; background:#e2e8f0; transition:0.2s; }
+.tab.active { background:#1d4ed8; color:white; }
+textarea { width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px; resize:vertical; min-height:100px; background:white; }
+.button-grid { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+button { flex:1; padding:10px; border:none; border-radius:10px; font-weight:bold; color:white; cursor:pointer; transition:0.2s; }
+button.reset { background:#f59e0b; }
+button.reset:hover { background:#d97706; }
+button.export { background:#10b981; }
+button.export:hover { background:#059669; }
+button.import { background:#1d4ed8; }
+button.import:hover { background:#2563eb; }
+#message { padding:10px; margin-top:10px; display:none; border-radius:8px; text-align:center; font-weight:bold; }
+#message.error { background:#fee2e2; color:#b91c1c; }
+#message.success { background:#d1fae5; color:#065f46; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>SubPlanner</h1>
+<div class="notice">App ini adalah nota penerangan bagi app Planner</div>
+
+<div class="tabs" id="dayTabs"></div>
+<textarea id="dayNote" placeholder="Tulis nota penerangan di sini..."></textarea>
+
+<div class="button-grid">
+<button class="reset" id="resetNote">Reset Nota</button>
+<button class="export" id="exportJSON">Export JSON</button>
+<button class="import" id="importJSON">Import JSON</button>
+<input type="file" id="importFile" accept=".json" style="display:none;">
+</div>
+
+<div id="message"></div>
+</div>
+
+<script>
+// Constants
+const DAYS = ['Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu','Ahad'];
+const STORAGE_KEY = 'subplanner_notes';
+
+// State
+let currentDay = 'Isnin';
+let notes = {};
+let typingTimer;            // Timer untuk debounce
+const TYPING_DELAY = 1000;  // 1 saat selepas berhenti menaip
+
+// Utils
+function save(val){ localStorage.setItem(STORAGE_KEY, JSON.stringify(val)); }
+function load(fallback){ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || fallback; }
+function showMessage(msg, error=false){ 
+    const m=document.getElementById('message'); 
+    m.textContent=msg; 
+    m.className=error?'error':'success'; 
+    m.style.display='block'; 
+    setTimeout(()=> m.style.display='none',1200); 
+}
+
+// Tabs
+function renderTabs(){
+ const wrap = document.getElementById('dayTabs'); wrap.innerHTML='';
+ DAYS.forEach(day=>{
+  const tab = document.createElement('div'); tab.textContent = day;
+  tab.className='tab'+(day===currentDay?' active':'');
+  tab.addEventListener('click',()=>{
+   currentDay=day; renderTabs(); document.getElementById('dayNote').value = notes[day]||'';
+  });
+  wrap.appendChild(tab);
+ });
+}
+
+// Auto-save function with debounce
+const dayNote = document.getElementById('dayNote');
+dayNote.addEventListener('input', () => {
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => {
+        notes[currentDay] = dayNote.value;
+        save(notes);
+        showMessage('Nota disimpan auto');
+    }, TYPING_DELAY);
+});
+
+// Reset button
+document.getElementById('resetNote').addEventListener('click',()=>{
+ if(confirm('Reset nota hari ini?')){
+  notes[currentDay]='';
+  save(notes);
+  document.getElementById('dayNote').value='';
+  showMessage('Nota direset');
+ }
+});
+
+// Export / Import
+document.getElementById('exportJSON').addEventListener('click',()=>{
+ const blob = new Blob([JSON.stringify(notes,null,2)],{type:'application/json'});
+ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='subplanner.json'; a.click();
+});
+document.getElementById('importJSON').addEventListener('click',()=>{ document.getElementById('importFile').click(); });
+document.getElementById('importFile').addEventListener('change',e=>{
+ const file = e.target.files[0]; if(!file) return;
+ const reader = new FileReader();
+ reader.onload = function(evt){
+  try{
+   const data = JSON.parse(evt.target.result);
+   notes = data||notes;
+   save(notes);
+   document.getElementById('dayNote').value = notes[currentDay]||'';
+   showMessage('Nota berjaya diimport');
+  }catch(err){ showMessage('Import gagal',true); console.error(err); }
+ };
+ reader.readAsText(file);
+ e.target.value='';
+});
+
+// Init
+function boot(){
+ notes = load({});
+ document.getElementById('dayNote').value = notes[currentDay]||'';
+ renderTabs();
+}
+boot();
+
+// Register service worker
+if('serviceWorker' in navigator){
+ navigator.serviceWorker.register('sw.js').then(()=>console.log('Service Worker registered')).catch(console.error);
+}
+</script>
+</body>
+</html>

@@ -1,9 +1,9 @@
-const CACHE_NAME = 'subplanner-cache-v4';
+const CACHE_NAME = 'subplanner-cache-v5';
 const FILES_TO_CACHE = [
   './index.html',
   './manifest.json',
-  './IconSubPlanner-192.png',
-  './IconSubPlanner-512.png'
+  './IconSubP-192.png',
+  './IconSubP-512.png'
 ];
 
 // Install
@@ -30,6 +30,7 @@ self.addEventListener('fetch', evt => {
     caches.match(evt.request).then(resp => resp || fetch(evt.request))
   );
 });
+
 
 
 

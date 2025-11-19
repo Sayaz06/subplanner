@@ -8,16 +8,17 @@
   "theme_color": "#1d4ed8",
   "icons": [
     {
-      "src": "IconSubPlanner-192.png",
+      "src": "IconSubP-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "IconSubPlanner-512.png",
+      "src": "IconSubP-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
   ]
 }
+
 
 
